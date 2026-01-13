@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fitness Companion Pro</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root { --bg: #0d0d0d; --card: #1c1c1e; --primary: #ccff00; --text: #fff; --gray: #8e8e93; --danger: #ff4444; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); padding-bottom: 90px; }
+        .hidden { display: none !important; }
+
+        /* ANIMATIONS */
+        @keyframes bounceIn { 0% { transform: scale(0.8); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
+        @keyframes glowPulse { 0% { box-shadow: 0 0 10px rgba(204, 255, 0, 0.2); } 50% { box-shadow: 0 0 25px rgba(204, 255, 0, 0.6); } 100% { box-shadow: 0 0 10px rgba(204, 255, 0, 0.2); } }
+        @keyframes heartbeat { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
+
+        /* UTILS */
+        .btn { border: none; padding: 12px 25px; border-radius: 30px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn:active { transform: scale(0.95); }
+        .btn-primary { background: var(--primary); color: #000; }
+        .btn-dark { background: #333; color: #fff; }
+        .btn-pulse { background: var(--primary); color: #000; animation: heartbeat 1.5s infinite; box-shadow: 0 0 15px rgba(204, 255, 0, 0.4); }
+        
+        /* DANGER ZONE */
+        .danger-zone { margin-top: 40px; padding: 20px; border: 1px solid #331111; background: #1a0505; border-radius: 20px; text-align: center; }
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-nuke { background: var(--danger); color: #fff; animation: shake 2s infinite; box-shadow: 0 0 20px rgba(255, 68, 68, 0.4); }
+
+        /* LOGIN */
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; padding: 40px; }
+        .login-input { background: var(--card); border: 1px solid #333; padding: 20px; color: white; border-radius: 15px; width: 100%; font-size: 1.1rem; margin: 20px 0; outline: none; }
+
+        /* ALERTS & MODALS */
+        .custom-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px);
+            z-index: 10000; display: flex; align-items: center; justify-content: center;
+        }
+        .modal-box {
+            background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+            width: 85%; max-width: 350px; padding: 30px; border-radius: 25px;
+            text-align: center; border: 2px solid #333;
+            animation: bounceIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .modal-box.success { border-color: var(--primary); box-shadow: 0 0 20px rgba(204,255,0,0.1); }
+        .modal-box.danger { border-color: var(--danger); box-shadow: 0 0 20px rgba(255,68,68,0.1); }
+
+        .modal-icon { font-size: 3rem; margin-bottom: 20px; display: block; }
+        .modal-actions { display: flex; gap: 15px; margin-top: 25px; }
+        .modal-actions button { flex: 1; padding: 15px; font-size: 1rem; }
+        
+        .modal-input {
+            background: #222; border: 2px solid #444; color: white;
+            padding: 15px; border-radius: 12px; width: 100%; font-size: 1.5rem;
+            text-align: center; margin-top: 15px; outline: none;
+        }
+        .modal-input:focus { border-color: var(--primary); }
+
+        /* HEADER */
+        header { padding: 20px; }
+        .progress-container { background: #333; height: 6px; border-radius: 10px; margin-top: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.5s ease; }
+
+        /* HOME */
+        .hero { margin: 20px; background: var(--primary); color: #000; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(204, 255, 0, 0.15); }
+        .water-card { background: var(--card); margin: 0 20px; padding: 20px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; }
+        .bottle-container { width: 50px; height: 90px; border: 3px solid #fff; border-radius: 12px; position: relative; overflow: hidden; background: #333; }
+        .water-fill { position: absolute; bottom: 0; width: 100%; background: #00BFFF; height: 0%; transition: height 0.5s ease; }
+
+        /* DIET */
+        .diet-card { background: var(--card); margin-bottom: 15px; padding: 20px; border-radius: 18px; }
+        .diet-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: var(--primary); }
+        .food-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; border-bottom: 1px solid #333; padding-bottom: 8px; }
+        .food-item:last-child { border: none; margin: 0; }
+        .recipe-card { background: linear-gradient(135deg, #2b0010, #1a0009); border: 1px solid #ff0055; margin-top: 20px; padding: 20px; border-radius: 20px; animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+
+        /* MODAL */
+        .workout-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 5000; padding: 20px; display: none; flex-direction: column; }
+        .workout-modal.show { display: flex; }
+        .yt-note { background: rgba(255, 255, 0, 0.15); border: 1px solid rgba(255, 255, 0, 0.3); color: #ffeba7; padding: 15px; border-radius: 12px; font-size: 0.9rem; display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
+        .exercise-item { background: var(--card); padding: 15px; border-radius: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px; cursor: pointer; }
+        .exercise-item.checked { opacity: 0.4; }
+        .check-circle { width: 24px; height: 24px; border: 2px solid #666; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+        .checked .check-circle { background: var(--primary); border-color: var(--primary); }
+
+        /* PROFILE */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-box { background: #2c2c2e; padding: 15px; border-radius: 15px; text-align: center; }
+        .trophy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .trophy { background: #222; padding: 10px; border-radius: 10px; text-align: center; opacity: 0.3; filter: grayscale(1); }
+        .trophy.unlocked { opacity: 1; filter: grayscale(0); border: 1px solid var(--primary); background: rgba(204,255,0,0.1); }
+
+        /* NAV */
+        .nav { position: fixed; bottom: 0; width: 100%; background: #111; display: flex; justify-content: space-around; padding: 15px; border-top: 1px solid #333; z-index: 4000; }
+        .nav-item { color: #666; font-size: 0.75rem; text-align: center; cursor: pointer; width: 25%; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item i { display: block; font-size: 1.3rem; margin-bottom: 5px; }
+        
+        /* PLAN LIST */
+        .day-list { display: grid; gap: 10px; }
+        .day-card { background: var(--card); padding: 15px; border-radius: 16px; opacity: 0.6; pointer-events: none; display: flex; justify-content: space-between; }
+        .day-card.active { opacity: 1; pointer-events: auto; border: 1px solid var(--primary); }
+        .day-card.completed { opacity: 0.8; pointer-events: auto; }
+    </style>
+</head>
+<body>
+
+    <div id="login-overlay">
+        <h1 style="color:var(--primary)">Fitness Companion</h1>
+        <p style="color:#888">Let's build a new you.</p>
+        <input type="text" id="username-input" class="login-input" placeholder="Enter your name...">
+        <button class="btn btn-primary" style="width:100%" onclick="app.login()">Start Journey</button>
+    </div>
+
+    <div id="honesty-alert" class="custom-modal hidden">
+        <div class="modal-box success">
+            <i class="fas fa-shield-alt modal-icon" style="color:var(--primary)"></i>
+            <h3>Mission Check!</h3>
+            <p style="color:#aaa; font-size:1rem;">Did you really crush this workout?</p>
+            <div class="modal-actions">
+                <button class="btn btn-dark" onclick="app.closeModals()">Not Yet</button>
+                <button class="btn btn-pulse" onclick="app.confirmComplete()">YES! 🔥</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="reset-alert" class="custom-modal hidden">
+        <div class="modal-box danger">
+            <i class="fas fa-skull-crossbones modal-icon" style="color:var(--danger)"></i>
+            <h3 style="color:var(--danger)">Nuclear Option</h3>
+            <p style="color:#aaa; font-size:0.9rem;">This deletes ALL progress permanently.</p>
+            <div class="modal-actions">
+                <button class="btn btn-dark" onclick="app.closeModals()">Cancel</button>
+                <button class="btn btn-nuke" onclick="app.confirmReset()">NUKE IT 💥</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="input-modal" class="custom-modal hidden">
+        <div class="modal-box">
+            <h3 id="input-title">Update Stats</h3>
+            <input type="number" id="modal-input-field" class="modal-input" placeholder="0">
+            <div class="modal-actions">
+                <button class="btn btn-dark" onclick="app.closeModals()">Cancel</button>
+                <button class="btn btn-primary" onclick="app.saveInput()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-app" class="hidden">
+        <header>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h1 id="user-display">Hi!</h1>
+                    <p style="color:#888" id="streak-text">0 Day Streak 🔥</p>
+                </div>
+                <div onclick="app.tab('profile', document.getElementById('nav-profile'))" style="background:#333; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+            <div class="progress-container"><div class="progress-bar" id="overall-progress"></div></div>
+        </header>
+
+        <div id="view-home">
+            <div class="hero">
+                <h2>Today's Mission</h2>
+                <h1 style="font-size: 2rem; margin: 10px 0;" id="hero-title">Loading...</h1>
+                <p id="hero-desc" style="opacity:0.8; margin-bottom:15px;">...</p>
+                <button class="btn" style="background:black; color:white;" onclick="app.openWorkout()">Start Mission</button>
+            </div>
+            <div class="water-card">
+                <div class="bottle-container"><div class="water-fill" id="water-fill-anim"></div></div>
+                <div style="text-align:center;"><h2 id="water-val">0.0</h2><small style="color:#888">of 2.5 Liters</small></div>
+                <div>
+                    <button class="btn btn-dark" style="padding:10px 15px;" onclick="app.updateWater(-0.25)">-</button>
+                    <button class="btn btn-primary" style="padding:10px 15px;" onclick="app.updateWater(0.25)">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-plan" class="hidden" style="padding: 0 20px;">
+            <div style="margin-bottom: 15px; font-weight:600;">30 Day Roadmap</div>
+            <div id="plan-list" class="day-list"></div>
+        </div>
+
+        <div id="view-diet" class="hidden" style="padding: 0 20px;">
+            <h2 style="margin-bottom:20px;">Budget-Friendly Diet</h2>
+            <div class="diet-card">
+                <div class="diet-header"><i class="fas fa-coffee"></i> <h3>Breakfast</h3></div>
+                <div class="food-item"><span>2 Boiled Eggs + Toast</span> <span style="color:#888">Protein</span></div>
+                <div class="food-item"><span>Oatmeal + Banana</span> <span style="color:#888">Energy</span></div>
+                <div class="food-item"><span>Yogurt + Apple</span> <span style="color:#888">Digestion</span></div>
+            </div>
+            <div class="diet-card">
+                <div class="diet-header"><i class="fas fa-utensils"></i> <h3>Lunch / Dinner</h3></div>
+                <div class="food-item"><span>Daal (Lentils) + Rice</span> <span style="color:#888">Classic</span></div>
+                <div class="food-item"><span>Chickpeas (Chana)</span> <span style="color:#888">Muscle</span></div>
+                <div class="food-item"><span>Chicken + Roti</span> <span style="color:#888">Growth</span></div>
+            </div>
+            <div class="diet-card">
+                <div class="diet-header"><i class="fas fa-apple-alt"></i> <h3>Cheap Snacks</h3></div>
+                <div class="food-item"><span>Roasted Chana</span> <span style="color:#888">Best!</span></div>
+                <div class="food-item"><span>Peanuts</span></div>
+                <div class="food-item"><span>Popcorn (Homemade)</span></div>
+            </div>
+            <button class="btn" style="width:100%; border:2px solid #ff0055; background:transparent; color:#ff0055; margin-bottom:10px;" onclick="app.toggleRecipe()">✨ Wanna know a secret recipe? 🤫</button>
+            <div id="secret-recipe" class="hidden recipe-card">
+                <h3 style="color:#ff0055; margin-bottom:10px; text-align:center;">The "Miracle Glow" Drink 🩸</h3>
+                <p style="color:#ccc; font-size:0.9rem; margin-bottom:15px; text-align:center;">Purifies blood & gives glowing skin!</p>
+                <div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px; margin-bottom:15px;">
+                    <strong style="color:white;">Ingredients:</strong>
+                    <ul style="color:#aaa; font-size:0.9rem; margin-left:20px; margin-top:5px;">
+                        <li>2 Beetroots (Chukandar)</li>
+                        <li>1 Cucumber (Kheera)</li>
+                        <li>1 Lemon (Nimbu)</li>
+                        <li>1 Cup Water</li>
+                    </ul>
+                </div>
+                <p style="font-size:0.9rem;"><i class="fas fa-blender"></i> Blend & Strain.<br><i class="fas fa-clock"></i> Drink first thing in morning.</p>
+            </div>
+            <div style="height:20px;"></div>
+        </div>
+
+        <div id="view-profile" class="hidden" style="padding: 0 20px;">
+            <h2 style="margin-bottom:20px;">Your Stats</h2>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-val" id="stat-weight">56</div>
+                    <small onclick="app.openInput('weight')" style="color:#888; cursor:pointer;"><i class="fas fa-pen"></i> Weight (kg)</small>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="stat-height">165</div>
+                    <small onclick="app.openInput('height')" style="color:#888; cursor:pointer;"><i class="fas fa-pen"></i> Height (cm)</small>
+                </div>
+            </div>
+            <div style="background:#222; padding:15px; border-radius:15px; margin-bottom:20px;">
+                <div style="text-align:center; margin-bottom:5px;">BMI: <span id="stat-bmi" style="color:white; font-weight:bold;">20.5</span></div>
+                <div style="height: 6px; background: linear-gradient(90deg, #00BFFF, #00FF00, #FFFF00, #FF0000); border-radius: 5px; position: relative;">
+                    <div id="bmi-marker" style="position: absolute; top: -3px; width: 4px; height: 12px; background: #fff; border: 1px solid #000;"></div>
+                </div>
+                <p id="bmi-text" style="text-align:center; margin-top:8px; font-size:0.85rem; color:#aaa;">Healthy</p>
+            </div>
+            <h3 style="margin-bottom:15px;">Trophy Cabinet 🏆</h3>
+            <div class="trophy-grid">
+                <div class="trophy" id="trophy-1"><i class="fas fa-play"></i><br><small>First Step</small></div>
+                <div class="trophy" id="trophy-3"><i class="fas fa-fire"></i><br><small>3 Days</small></div>
+                <div class="trophy" id="trophy-7"><i class="fas fa-medal"></i><br><small>Week 1</small></div>
+                <div class="trophy" id="trophy-water"><i class="fas fa-tint"></i><br><small>Hydrated</small></div>
+                <div class="trophy" id="trophy-half"><i class="fas fa-star-half-alt"></i><br><small>Half Way</small></div>
+                <div class="trophy" id="trophy-all"><i class="fas fa-crown"></i><br><small>Legend</small></div>
+            </div>
+            <div class="danger-zone">
+                <h4 style="color:#ff4444; margin-bottom:5px;">Danger Zone</h4>
+                <p style="color:#888; font-size:0.8rem;">This will delete all progress.</p>
+                <button class="btn btn-danger" onclick="app.triggerReset()"><i class="fas fa-trash"></i> Reset All Data</button>
+            </div>
+        </div>
+
+        <nav class="nav">
+            <div class="nav-item active" id="nav-home" onclick="app.tab('home', this)"><i class="fas fa-home"></i>Home</div>
+            <div class="nav-item" id="nav-plan" onclick="app.tab('plan', this)"><i class="fas fa-map"></i>Plan</div>
+            <div class="nav-item" id="nav-diet" onclick="app.tab('diet', this)"><i class="fas fa-carrot"></i>Food</div>
+            <div class="nav-item" id="nav-profile" onclick="app.tab('profile', this)"><i class="fas fa-user"></i>You</div>
+        </nav>
+    </div>
+
+    <div id="workout-modal" class="workout-modal">
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+            <h2 id="modal-title">Day 1</h2>
+            <div onclick="document.getElementById('workout-modal').classList.remove('show')" style="background:#333; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;">✕</div>
+        </div>
+        <div class="yt-note"><i class="fas fa-lightbulb" style="font-size:1.5rem;"></i><div><b>Confused?</b> Search exercise on YouTube.</div></div>
+        <div id="ex-list" style="overflow-y:auto; flex-grow:1;"></div>
+        <button id="finish-btn" class="btn btn-dark" style="width:100%; color:#666;" disabled onclick="app.tryComplete()">Complete Mission 🎯</button>
+    </div>
+
+    <script>
+        const DB = {
+            exercises: {
+                "Full Body": ["March (2 min)", "Squats (15 reps)", "Wall Pushups (10 reps)", "Knee Raises (20 reps)", "Plank (20s)"],
+                "Cardio": ["Brisk Walk (10 min)", "Jumping Jacks (30s)", "High Knees (30s)"],
+                "Lower Body": ["Glute Bridge (15 reps)", "Squats (15 reps)", "Lunges (10 each)", "Wall Sit (30s)"],
+                "Active Rest": ["Stretching (10 min)", "Yoga", "Light Walk"],
+                "Upper Body": ["Arm Raises (20 reps)", "Wall Pushups (10 reps)", "Tricep Dips (10 reps)"],
+                "Core": ["Crunches (15 reps)", "Leg Raises (10 reps)", "Plank (20s)", "Twists (20 reps)"],
+                "Rest": ["Rest Day - Sleep Well! 💤"]
+            },
+            pattern: ["Full Body", "Cardio", "Lower Body", "Active Rest", "Upper Body", "Core", "Rest"]
+        };
+
+        const app = {
+            state: { user: null, day: 1, water: 0, lastWaterDate: null, done: [], weight: 56, height: 165 },
+            pendingDay: null,
+            inputType: null, // 'weight' or 'height'
+
+            init: function() {
+                try { const s = localStorage.getItem('fitApp_Finalv5'); if(s) this.state = JSON.parse(s); } catch(e){}
+                const today = new Date().toDateString();
+                if(this.state.lastWaterDate !== today) { this.state.water = 0; this.state.lastWaterDate = today; this.save(); }
+                if(this.state.user) { document.getElementById('login-overlay').style.display = 'none'; document.getElementById('main-app').classList.remove('hidden'); this.render(); }
+            },
+            login: function() {
+                const name = document.getElementById('username-input').value;
+                if(!name) return alert("Please enter your name");
+                this.state.user = name; this.save(); this.init();
+            },
+            render: function() {
+                document.getElementById('user-display').innerText = "Hi, " + this.state.user;
+                document.getElementById('streak-text').innerText = this.state.done.length + " Day Streak 🔥";
+                const pct = Math.round((this.state.done.length / 30) * 100);
+                document.getElementById('overall-progress').style.width = pct + "%";
+
+                const type = DB.pattern[(this.state.day - 1) % 7];
+                document.getElementById('hero-title').innerText = type;
+                document.getElementById('hero-desc').innerText = DB.exercises[type] ? DB.exercises[type].join(", ") : "Rest Day";
+
+                document.getElementById('water-val').innerText = this.state.water.toFixed(2);
+                const wPct = Math.min((this.state.water / 2.5) * 100, 100);
+                document.getElementById('water-fill-anim').style.height = wPct + "%";
+
+                document.getElementById('stat-weight').innerText = this.state.weight;
+                document.getElementById('stat-height').innerText = this.state.height;
+                const bmi = (this.state.weight / Math.pow(this.state.height/100, 2)).toFixed(1);
+                document.getElementById('stat-bmi').innerText = bmi;
+                let bPos = ((bmi - 15) / 20) * 100; if(bPos<0) bPos=0; if(bPos>100) bPos=100;
+                document.getElementById('bmi-marker').style.left = bPos + "%";
+                if(bmi<18.5) document.getElementById('bmi-text').innerText="Underweight";
+                else if(bmi<25) document.getElementById('bmi-text').innerText="Healthy Zone ✅";
+                else document.getElementById('bmi-text').innerText="Overweight";
+
+                const d = this.state.done.length;
+                if(d>=1) document.getElementById('trophy-1').classList.add('unlocked');
+                if(d>=3) document.getElementById('trophy-3').classList.add('unlocked');
+                if(d>=7) document.getElementById('trophy-7').classList.add('unlocked');
+                if(this.state.water>=2.5) document.getElementById('trophy-water').classList.add('unlocked');
+                if(d>=15) document.getElementById('trophy-half').classList.add('unlocked');
+                if(d>=30) document.getElementById('trophy-all').classList.add('unlocked');
+
+                const list = document.getElementById('plan-list'); list.innerHTML = "";
+                for(let i=1; i<=30; i++){
+                    const t = DB.pattern[(i-1)%7];
+                    const isDone = this.state.done.includes(i);
+                    const isLocked = i > this.state.day && !isDone;
+                    let cls = "day-card"; if(isDone) cls += " completed"; else if(i === this.state.day) cls += " active";
+                    const div = document.createElement('div'); div.className = cls;
+                    div.innerHTML = `<div><b>Day ${i}</b> <span style="font-size:0.8rem; color:#888">${t}</span></div>`;
+                    if(isDone) div.innerHTML += `<i class="fas fa-check" style="color:var(--primary)"></i>`;
+                    else if(isLocked) div.innerHTML += `<i class="fas fa-lock" style="color:#444"></i>`;
+                    else div.innerHTML += `<i class="fas fa-play"></i>`;
+                    if(!isLocked) div.onclick = () => this.openWorkout(i);
+                    list.appendChild(div);
+                }
+            },
+            openWorkout: function(dayOverride) {
+                const day = dayOverride || this.state.day; this.pendingDay = day; 
+                const type = DB.pattern[(day-1)%7]; const exs = DB.exercises[type];
+                document.getElementById('modal-title').innerText = `Day ${day}: ${type}`;
+                const list = document.getElementById('ex-list'); list.innerHTML = "";
+                let checks = 0; const isDone = this.state.done.includes(day);
+                exs.forEach((ex, idx) => {
+                    const row = document.createElement('div'); row.className = `exercise-item ${isDone ? 'checked' : ''}`;
+                    row.innerHTML = `<div class="check-circle"><i class="fas fa-check" style="display:${isDone?'block':'none'}"></i></div><span>${ex}</span>`;
+                    if(!isDone) {
+                        row.onclick = function() {
+                            if(navigator.vibrate) navigator.vibrate(50);
+                            if(row.classList.contains('checked')) { row.classList.remove('checked'); row.querySelector('i').style.display='none'; checks--; } 
+                            else { row.classList.add('checked'); row.querySelector('i').style.display='block'; checks++; }
+                            const btn = document.getElementById('finish-btn');
+                            btn.disabled = checks < exs.length;
+                            btn.className = checks < exs.length ? "btn btn-dark" : "btn btn-primary";
+                            btn.style.color = checks < exs.length ? "#666" : "#000";
+                        };
+                    }
+                    list.appendChild(row);
+                });
+                const btn = document.getElementById('finish-btn');
+                if(isDone) { btn.innerText = "Completed"; btn.disabled = true; btn.className="btn btn-dark"; } 
+                else { btn.innerText = "Complete Mission 🎯"; btn.disabled = true; btn.className="btn btn-dark"; }
+                document.getElementById('workout-modal').classList.add('show');
+            },
+            
+            // MODAL HANDLING
+            tryComplete: function() { document.getElementById('honesty-alert').classList.remove('hidden'); },
+            triggerReset: function() { document.getElementById('reset-alert').classList.remove('hidden'); },
+            
+            openInput: function(type) {
+                this.inputType = type;
+                document.getElementById('input-title').innerText = type === 'weight' ? 'Update Weight (kg)' : 'Update Height (cm)';
+                document.getElementById('modal-input-field').value = type === 'weight' ? this.state.weight : this.state.height;
+                document.getElementById('input-modal').classList.remove('hidden');
+                document.getElementById('modal-input-field').focus();
+            },
+
+            closeModals: function() {
+                document.querySelectorAll('.custom-modal').forEach(el => el.classList.add('hidden'));
+            },
+
+            saveInput: function() {
+                const val = parseFloat(document.getElementById('modal-input-field').value);
+                if(val && !isNaN(val)) {
+                    if(this.inputType === 'weight') this.state.weight = val;
+                    if(this.inputType === 'height') this.state.height = val;
+                    this.save(); this.render();
+                }
+                this.closeModals();
+            },
+
+            confirmComplete: function() {
+                this.closeModals();
+                const day = this.pendingDay;
+                if(!this.state.done.includes(day)) {
+                    this.state.done.push(day); if(day === this.state.day) this.state.day++; this.save();
+                    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                    setTimeout(() => { document.getElementById('workout-modal').classList.remove('show'); this.render(); }, 2000);
+                }
+            },
+            
+            confirmReset: function() {
+                localStorage.removeItem('fitApp_Finalv5');
+                location.reload();
+            },
+
+            updateWater: function(amt) {
+                this.state.water += amt; if(this.state.water < 0) this.state.water = 0; this.save(); this.render();
+                if(this.state.water >= 2.5) confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+            },
+            toggleRecipe: function() { document.getElementById('secret-recipe').classList.toggle('hidden'); },
+            tab: function(name, el) { ['home','plan','diet','profile'].forEach(v => document.getElementById('view-'+v).classList.add('hidden')); document.getElementById('view-'+name).classList.remove('hidden'); document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active')); el.classList.add('active'); },
+            save: function() { try { localStorage.setItem('fitApp_Finalv5', JSON.stringify(this.state)); } catch(e){} },
+        };
+        window.onload = function() { app.init(); };
+    </script>
+</body>
+</html>
